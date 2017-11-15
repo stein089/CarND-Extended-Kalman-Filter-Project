@@ -1,4 +1,5 @@
 #include "kalman_filter.h"
+#include <iostream>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -21,22 +22,79 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
 }
 
 void KalmanFilter::Predict() {
-  /**
-  TODO:
-    * predict the state
-  */
+  x_ = F_ * x_;
+  MatrixXd Ft = F_.transpose();
+  P_ = F_ * P_ * Ft + Q_;
+
+ // std::cout << "Predict: P_ =" << P_ << std::endl;
+  std::cout << "Predict: x_ =" << x_ << std::endl;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
-  /**
-  TODO:
-    * update the state by using Kalman Filter equations
-  */
+  std::cout << "KalmanFilter.Update" << std::endl;
+  VectorXd z_pred = H_ * x_;
+  //std::cout << "z_pred =" << z_pred << std::endl;
+
+  VectorXd y = z - z_pred;
+  MatrixXd Ht = H_.transpose();
+  //std::cout << "Ht =" << Ht << std::endl;
+
+  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd Si = S.inverse();
+  MatrixXd PHt = P_ * Ht;
+  MatrixXd K = PHt * Si;
+  //std::cout << "P_ =" << P_ << std::endl;
+
+
+  //new estimate
+  x_ = x_ + (K * y);
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - K * H_) * P_;
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
-  /**
-  TODO:
-    * update the state by using Extended Kalman Filter equations
-  */
+  std::cout << "KalmanFilter.UpdateEKF" << std::endl;
+  VectorXd h = VectorXd(3);
+
+  h(0) = sqrt(x_[0]*x_[0] + x_[1]*x_[1]);
+
+  if( fabs(x_[0]) > 0.0001)
+    h(1) = atan2(x_[1], x_[0]);
+  else
+    h(1) = 0;
+
+  h(2) = (x_[0]*x_[2]+x_[1]*x_[3])/sqrt(x_[0]*x_[0] + x_[1]*x_[1]);
+
+  std::cout << "h UpdateEKF =" << h << std::endl;
+
+  VectorXd y = z - h;
+
+
+  // Normalize Angles to be between -pi and +pi
+  while (y[1] <= -pi_)
+    y[1] = y[1] + 2*pi_;
+
+  while (y[1] > pi_)
+    y[1] = y[1] - 2*pi_;
+
+  std::cout << "y UpdateEKF =" << y << std::endl;
+
+  MatrixXd Ht = H_.transpose();
+
+  //std::cout << "MatrixXd Ht =" << Ht << std::endl;
+  //std::cout << "MatrixXd H_ =" << H_ << std::endl;
+  //std::cout << "MatrixXd P_ =" << P_ << std::endl;
+  //std::cout << "MatrixXd R_ =" << R_ << std::endl;
+
+  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd Si = S.inverse();
+  MatrixXd PHt = P_ * Ht;
+  MatrixXd K = PHt * Si;
+
+  //new estimate
+  x_ = x_ + (K * y);
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - K * H_) * P_;
 }

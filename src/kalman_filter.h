@@ -23,6 +23,9 @@ public:
   // measurement covariance matrix
   Eigen::MatrixXd R_;
 
+  float pi_ = atan(1)*4;
+
+
   /**
    * Constructor
    */
